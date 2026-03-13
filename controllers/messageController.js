@@ -37,14 +37,26 @@ export const sendMessage = async (req, res) => {
         }
 
         if (!ALLOWED_COMMUNITIES.includes(community)) {
-            return res.status(400).json({ error: `Invalid community` });
+            return res.status(400).json({ error: "Invalid community" });
         }
 
-        const uniqueSubCommunities = [...new Set(sub_community)];
+        // Trim sub communities
+        const trimmedSubs = sub_community.map((sub) => sub.trim());
+
+        // Check for duplicate sub_communities
+        const duplicateSubs = trimmedSubs.filter(
+            (item, index) => trimmedSubs.indexOf(item) !== index
+        );
+
+        if (duplicateSubs.length > 0) {
+            return res.status(400).json({
+                error: "Duplicate sub_community values are not allowed"
+            });
+        }
 
         const allowedSubs = COMMUNITY_MAP[community];
 
-        const invalidSubs = uniqueSubCommunities.filter(
+        const invalidSubs = trimmedSubs.filter(
             (sub) => !allowedSubs.includes(sub)
         );
 
@@ -56,7 +68,7 @@ export const sendMessage = async (req, res) => {
 
         if (!ALLOWED_TYPES.includes(message_type)) {
             return res.status(400).json({
-                error: `message_type is invalid`
+                error: "message_type is invalid"
             });
         }
 
@@ -64,8 +76,8 @@ export const sendMessage = async (req, res) => {
             ra_name,
             ra_id,
             community: community.toLowerCase(),
-            sub_community: uniqueSubCommunities.map((sub)=>sub.trim()),
-            message_type:message_type.trim(),
+            sub_community: trimmedSubs,
+            message_type: message_type.trim(),
             message_content,
         });
 
@@ -78,8 +90,8 @@ export const sendMessage = async (req, res) => {
             ra_name,
             ra_id,
             community: community.toLowerCase(),
-            sub_community: uniqueSubCommunities.map((sub)=>sub.trim()),
-            message_type,
+            sub_community: trimmedSubs,
+            message_type: message_type.trim(),
             message_content,
             created_at,
         };

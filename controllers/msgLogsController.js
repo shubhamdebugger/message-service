@@ -8,8 +8,11 @@ export const markAsSeen = async (req, res) => {
     const user_id = req.user.id;
     try {
 
-        if (!message_id || !community || !sub_community || !seen_at) {
-            return res.status(400).json({ message: "message_id, community, sub_community and seen_at are required" });
+        if (!message_id || !community || !sub_community || message_type || !seen_at) {
+            return res.status(400).json({ message: "message_id, community, sub_community, message_type and seen_at are required" });
+        }
+        if (!mongoose.Types.ObjectId.isValid(message_id)) {
+            return res.status(400).json({ message: "Invalid message id" });
         }
         const message = await Message.findById(message_id);
 
@@ -28,6 +31,11 @@ export const markAsSeen = async (req, res) => {
                 message: "Sub community does not belong to this message"
             });
         }
+
+        if(message.message_type!=="trade"){
+            return res.status(400).json({message: "Invalid message type. Only 'trade' messages are allowed."});
+        }
+
         // insertOne will fail silently if duplicate (because of unique index)
         const log = await MessageSeenLog.create({
             message_id,
@@ -47,7 +55,6 @@ export const markAsSeen = async (req, res) => {
             // duplicate — user already saw  it, silently ignore
             return res.status(200).json({ message: "Already seen" });
         }
-        console.error(err);
         res.status(500).json({ message: "Server error" });
     }
 }
@@ -64,7 +71,6 @@ export const getMessageStats = async (req, res) => {
         }
 
         const message = await Message.findById(messageId);
-        console.log(message)
         if (!message) {
             return res.status(404).json({
                 message: "Message not found"
@@ -84,6 +90,7 @@ export const getMessageStats = async (req, res) => {
         }
         const messageDetails = logs[0].message_id;
         res.json({
+            total_seen: logs.length,
             message_info: {
                 message_id: messageDetails._id,
                 message_content: messageDetails.message_content,
@@ -91,8 +98,7 @@ export const getMessageStats = async (req, res) => {
                 community: messageDetails.community,
                 sub_community: messageDetails.sub_community,
                 message_created_at: messageDetails.createdAt
-            },
-            total_seen: logs.length,
+            }, 
             seen_by: logs.map((log) => ({
                 user_id: log.user_id._id,
                 name: log.user_id.name,
@@ -105,7 +111,6 @@ export const getMessageStats = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error.message);
         res.status(500).json({ message: "Server error" });
     }
 };
@@ -142,17 +147,14 @@ export const getUserStats = async (req, res) => {
         const userDetails = logs[0].user_id;
 
         res.json({
-
-            user_info: {
+            total_messages_seen: logs.length,
+            user_info: {             
                 user_id: userDetails._id,
                 name: userDetails.name,
                 email: userDetails.email,
                 community: userDetails.community,
                 sub_community: userDetails.sub_community
             },
-
-            total_messages_seen: logs.length,
-
             messages: logs.map((log) => ({
                 message_id: log.message_id._id,
                 message_content: log.message_id.message_content,
