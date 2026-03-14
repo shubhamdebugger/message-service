@@ -8,7 +8,7 @@ export const markAsSeen = async (req, res) => {
     const user_id = req.user.id;
     try {
 
-        if (!message_id || !community || !sub_community || message_type || !seen_at) {
+        if (!message_id || !community || !sub_community || !seen_at) {
             return res.status(400).json({ message: "message_id, community, sub_community, message_type and seen_at are required" });
         }
         if (!mongoose.Types.ObjectId.isValid(message_id)) {
@@ -51,6 +51,7 @@ export const markAsSeen = async (req, res) => {
 
         res.status(201).json({ message: "Marked as seen", log });
     } catch (err) {
+        console.log(err);
         if (err.code === 11000) {
             // duplicate — user already saw  it, silently ignore
             return res.status(200).json({ message: "Already seen" });
@@ -120,9 +121,7 @@ export const getUserStats = async (req, res) => {
         const { userId } = req.params;
 
            if (!mongoose.Types.ObjectId.isValid(userId)) {
-            return res.status(400).json({
-                message: "Invalid message id"
-            });
+            return res.status(400).json({ message: "Invalid message id" });
         }
 
     const user = await User.findById(userId);
@@ -130,7 +129,7 @@ export const getUserStats = async (req, res) => {
         return res.status(401).json({data:null , success: false , message:"user does not exists"})
     }
 
-        const logs = await MessageSeenLog.find({ user_id: userId, message_type: "trade" })
+        const logs = await MessageSeenLog.find({ user_id: userId })
             .populate("user_id", "name email community sub_community")
             .populate("message_id", "message_content message_type community sub_community createdAt")
             .sort({ seen_at: -1 });

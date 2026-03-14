@@ -3,8 +3,8 @@ import {markAsSeen, getMessageStats, getUserStats} from "../controllers/msgLogsC
 import { authorize } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
-router.post("/mark-seen", authorize("user"), markAsSeen);
-router.get("/message-stats/:messageId", getMessageStats);
-router.get("/user-stats/:userId", getUserStats);
+router.post("/v1/mark-seen", authorize("user"), markAsSeen);
+router.get("/v1/messages/:messageId", getMessageStats);
+router.get("/v1/users/:userId", getUserStats);
 
 export default router;
